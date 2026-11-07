@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Models\ArtisanProfile;
-use App\Models\User;
 use Illuminate\Http\Request;
 
 class ArtisanController extends Controller
@@ -11,6 +10,8 @@ class ArtisanController extends Controller
     public function index()
     {
         $artisans = ArtisanProfile::with(['user', 'services', 'galleryImages'])
+            ->where('status', 'approved')
+            ->where('is_verified', true)
             ->whereHas('user', function ($query) {
                 $query->where('status', 'active');
             })
@@ -22,6 +23,9 @@ class ArtisanController extends Controller
     public function show($id)
     {
         $artisan = ArtisanProfile::with(['user', 'services', 'galleryImages', 'reviews'])
+            ->where('status', 'approved')
+            ->where('is_verified', true)
+            ->whereHas('user', fn ($query) => $query->where('status', 'active'))
             ->findOrFail($id);
 
         return response()->json($artisan);

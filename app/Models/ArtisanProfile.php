@@ -6,6 +6,14 @@ use Illuminate\Database\Eloquent\Model;
 
 class ArtisanProfile extends Model
 {
+    protected function casts(): array
+    {
+        return [
+            'is_verified' => 'boolean',
+            'verified_at' => 'datetime',
+        ];
+    }
+
     protected $fillable = [
         'user_id',
         'specialty',
@@ -13,6 +21,9 @@ class ArtisanProfile extends Model
         'experience_years',
         'rating',
         'is_verified',
+        'status',
+        'rejection_reason',
+        'verified_at',
         'location',
         'cover_image',
     ];

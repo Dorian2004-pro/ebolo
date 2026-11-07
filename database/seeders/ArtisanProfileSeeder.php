@@ -20,6 +20,8 @@ class ArtisanProfileSeeder extends Seeder
                 'experience_years' => 8,
                 'rating' => 4.9,
                 'is_verified' => true,
+                'status' => 'approved',
+                'verified_at' => now(),
                 'location' => 'Bastos, Yaoundé',
                 'cover_image' => 'https://images.example.com/artist-cover.jpg',
             ]

@@ -16,6 +16,9 @@ return new class extends Migration
             $table->integer('experience_years')->default(0);
             $table->decimal('rating', 3, 2)->default(0.00);
             $table->boolean('is_verified')->default(false);
+            $table->string('status')->default('pending');
+            $table->text('rejection_reason')->nullable();
+            $table->timestamp('verified_at')->nullable();
             $table->string('location')->nullable();
             $table->string('cover_image')->nullable();
             $table->timestamps();

@@ -8,22 +8,24 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('artisan_profiles', function (Blueprint $table) {
+        Schema::create('services', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->constrained()->onDelete('cascade');
-            $table->string('specialty')->nullable();
-            $table->text('bio')->nullable();
-            $table->integer('experience_years')->default(0);
-            $table->decimal('rating', 3, 2)->default(0.00);
-            $table->boolean('is_verified')->default(false);
-            $table->string('location')->nullable();
-            $table->string('cover_image')->nullable();
+            $table->foreignId('artisan_id')->constrained('artisan_profiles')->cascadeOnDelete();
+            $table->string('name');
+            $table->string('slug')->unique();
+            $table->text('description')->nullable();
+            $table->integer('duration_minutes');
+            $table->decimal('price', 12, 2);
+            $table->string('category')->nullable();
+            $table->string('image')->nullable();
+            $table->boolean('is_active')->default(true);
+            $table->boolean('is_featured')->default(false);
             $table->timestamps();
         });
     }
 
     public function down(): void
     {
-        Schema::dropIfExists('artisan_profiles');
+        Schema::dropIfExists('services');
     }
 };

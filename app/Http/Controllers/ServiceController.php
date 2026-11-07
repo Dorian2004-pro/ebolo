@@ -12,6 +12,11 @@ class ServiceController extends Controller
     {
         $services = Service::with('artisan.user')
             ->where('is_active', true)
+            ->whereHas('artisan', function ($query) {
+                $query->where('status', 'approved')
+                    ->where('is_verified', true)
+                    ->whereHas('user', fn ($user) => $user->where('status', 'active'));
+            })
             ->get();
 
         return response()->json($services);
@@ -79,7 +84,7 @@ class ServiceController extends Controller
         $service->delete();
 
         return response()->json([
-            'message' => 'Service supprimé'
+            'message' => 'Service supprimé',
         ]);
     }
 }
