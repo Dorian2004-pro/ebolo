@@ -32,17 +32,54 @@ class ClientModuleTest extends TestCase
             'phone' => '+237600000000',
             'password' => 'correct-horse',
             'password_confirmation' => 'correct-horse',
+            'accepted_terms' => true,
+            'account_type' => 'client',
+            'interests' => ['tresses', 'soins'],
         ]);
 
         $response->assertCreated()->assertJsonPath('redirect', route('home'));
         $this->assertSame('client-api-token', session('ebolo_token'));
         $this->assertSame(12, session('ebolo_user.id'));
 
-        Http::assertSent(fn (ClientRequest $request): bool =>
-            str_ends_with($request->url(), '/register')
+        Http::assertSent(fn (ClientRequest $request): bool => str_ends_with($request->url(), '/register')
             && $request['role_id'] === config('services.ebolo.client_role_id')
             && $request['email'] === 'vanessa@example.cm'
+            && $request['interests'] === ['tresses', 'soins']
             && $request['password'] === $request['password_confirmation']
+        );
+    }
+
+    public function test_a_salon_can_register_and_continue_to_the_professional_login(): void
+    {
+        config([
+            'services.ebolo.salon_role_id' => 4,
+            'services.ebolo.provider_url' => 'http://127.0.0.1:8004',
+        ]);
+
+        Http::fakeSequence()
+            ->push(['token' => 'salon-api-token'], 201)
+            ->push(['message' => 'Déconnexion réussie'], 200);
+
+        $response = $this->postJson(route('client.auth.register'), [
+            'account_type' => 'salon',
+            'name' => 'Atelier Ébène',
+            'email' => 'atelier@example.cm',
+            'phone' => '+237600000001',
+            'password' => 'correct-horse',
+            'password_confirmation' => 'correct-horse',
+            'accepted_terms' => true,
+            'interests' => ['tresses', 'couture'],
+        ]);
+
+        $response->assertCreated()
+            ->assertJsonPath('redirect', 'http://127.0.0.1:8004/connexion');
+        $this->assertNull(session('ebolo_token'));
+
+        Http::assertSent(fn (ClientRequest $request): bool => str_ends_with($request->url(), '/register')
+            && $request['role_id'] === 4
+            && $request['interests'] === ['tresses', 'couture']
+        );
+        Http::assertSent(fn (ClientRequest $request): bool => str_contains($request->url(), 'logout')
         );
     }
 
@@ -60,12 +97,12 @@ class ClientModuleTest extends TestCase
             'email' => 'vanessa@example.cm',
             'password' => 'correct-horse',
             'password_confirmation' => 'correct-horse',
+            'accepted_terms' => true,
         ]);
 
         $response->assertForbidden();
         $this->assertNull(session('ebolo_token'));
-        Http::assertSent(fn (ClientRequest $request): bool =>
-            str_ends_with($request->url(), '/logout')
+        Http::assertSent(fn (ClientRequest $request): bool => str_ends_with($request->url(), '/logout')
             && $request->hasHeader('Authorization', 'Bearer wrong-role-token')
         );
     }
@@ -79,10 +116,11 @@ class ClientModuleTest extends TestCase
             'email' => 'vanessa@example.cm',
             'password' => 'correct-horse',
             'password_confirmation' => 'correct-horse',
+            'accepted_terms' => true,
         ]);
 
         $response->assertStatus(503)
-            ->assertJsonPath('message', 'Configurez EBOLO_CLIENT_ROLE_ID avec l’identifiant du rôle client dans le backend.');
+            ->assertJsonPath('message', 'Configurez l’identifiant du rôle client dans les paramètres Ébolo.');
         Http::assertNothingSent();
     }
 
@@ -134,8 +172,7 @@ class ClientModuleTest extends TestCase
         $response = $this->withSession(['ebolo_token' => 'private-token'])->getJson(route('client.data.services'));
 
         $response->assertOk()->assertJsonPath('0.name', 'Tresses');
-        Http::assertSent(fn (ClientRequest $request): bool =>
-            str_ends_with($request->url(), '/services')
+        Http::assertSent(fn (ClientRequest $request): bool => str_ends_with($request->url(), '/services')
             && $request->hasHeader('Authorization', 'Bearer private-token')
         );
     }
@@ -164,8 +201,7 @@ class ClientModuleTest extends TestCase
         );
 
         $response->assertCreated()->assertJsonPath('status', 'pending');
-        Http::assertSent(fn (ClientRequest $request): bool =>
-            str_ends_with($request->url(), '/bookings')
+        Http::assertSent(fn (ClientRequest $request): bool => str_ends_with($request->url(), '/bookings')
             && $request->hasHeader('Authorization', 'Bearer private-token')
             && $request['artisan_id'] === 8
             && $request['service_id'] === 5

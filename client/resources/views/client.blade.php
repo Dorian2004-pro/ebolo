@@ -8,6 +8,6 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body>
-    <div id="client-app" data-screen="{{ $screen }}" data-user="{{ json_encode($user, JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT | JSON_HEX_TAG) }}"></div>
+    <div id="client-app" data-screen="{{ $screen }}" data-user="{{ json_encode($user, JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT | JSON_HEX_TAG) }}" data-booking-id="{{ $bookingId ?? '' }}"></div>
 </body>
 </html>

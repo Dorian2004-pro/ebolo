@@ -8,5 +8,6 @@ if (root) {
     createApp(ClientApp, {
         screen: root.dataset.screen,
         user: JSON.parse(root.dataset.user || 'null'),
+        bookingId: root.dataset.bookingId ? Number(root.dataset.bookingId) : null,
     }).mount(root);
 }

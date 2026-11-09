@@ -2,33 +2,47 @@
 
 namespace App\Http\Controllers;
 
+use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Http\Client\Response;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Http\Client\ConnectionException;
 
 class ClientAuthController extends Controller
 {
     public function register(Request $request): JsonResponse
     {
         $validated = $request->validate([
+            'account_type' => ['sometimes', 'required', 'in:client,artisan,salon'],
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255'],
             'phone' => ['nullable', 'string', 'max:20'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
             'password_confirmation' => ['required', 'string', 'same:password'],
+            'accepted_terms' => ['required', 'accepted'],
+            'interests' => ['sometimes', 'array', 'max:9'],
+            'interests.*' => ['string', 'in:tresses,perruques,locks,maquillage,manucure,soins,couture,tailoring,retouches'],
         ]);
 
-        if (config('services.ebolo.client_role_id') < 1) {
+        $accountType = $validated['account_type'] ?? 'client';
+        $roleId = config("services.ebolo.{$accountType}_role_id");
+        if ($roleId < 1) {
             return response()->json([
-                'message' => 'Configurez EBOLO_CLIENT_ROLE_ID avec l’identifiant du rôle client dans le backend.',
+                'message' => "Configurez l’identifiant du rôle {$accountType} dans les paramètres Ébolo.",
+            ], 503);
+        }
+        $providerUrl = rtrim((string) config('services.ebolo.provider_url'), '/');
+        if ($accountType !== 'client' && $providerUrl === '') {
+            return response()->json([
+                'message' => 'Configurez EBOLO_PROVIDER_APP_URL pour accéder à l’espace professionnel.',
             ], 503);
         }
 
+        $payload = $validated;
+        unset($payload['account_type'], $payload['accepted_terms']);
         $response = $this->sendToBackend('/register', [
-            ...$validated,
-            'role_id' => config('services.ebolo.client_role_id'),
+            ...$payload,
+            'role_id' => $roleId,
         ]);
 
         if ($response->failed()) {
@@ -36,6 +50,14 @@ class ClientAuthController extends Controller
         }
 
         $data = $response->json();
+        if ($accountType !== 'client') {
+            $revocation = $this->backendRequest('POST', '/logout', $data['token']);
+            if ($revocation->failed()) {
+                return $this->forwardError($revocation);
+            }
+
+            return response()->json(['redirect' => $providerUrl.'/connexion'], 201);
+        }
 
         return $this->startClientSession($request, $data['token'], 201);
     }
@@ -54,6 +76,7 @@ class ClientAuthController extends Controller
         }
 
         $data = $response->json();
+
         return $this->startClientSession($request, $data['token']);
     }
 

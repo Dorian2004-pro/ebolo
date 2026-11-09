@@ -21,6 +21,9 @@ return [
     'ebolo' => [
         'base_url' => env('EBOLO_API_URL', 'http://127.0.0.1:8003/api'),
         'client_role_id' => (int) env('EBOLO_CLIENT_ROLE_ID', 1),
+        'artisan_role_id' => (int) env('EBOLO_ARTISAN_ROLE_ID', 2),
+        'salon_role_id' => (int) env('EBOLO_SALON_ROLE_ID', 4),
+        'provider_url' => env('EBOLO_PROVIDER_APP_URL', 'http://127.0.0.1:8004'),
     ],
 
     'resend' => [
