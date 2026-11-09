@@ -1,5 +1,13 @@
 <?php
 
+use App\Http\Controllers\Admin\AuthController as AdminAuthController;
+use App\Http\Controllers\Admin\BookingController as AdminBookingController;
+use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
+use App\Http\Controllers\Admin\DisputeController as AdminDisputeController;
+use App\Http\Controllers\Admin\ProviderController as AdminProviderController;
+use App\Http\Controllers\Admin\ServiceController as AdminServiceController;
+use App\Http\Controllers\Admin\TransactionController as AdminTransactionController;
+use App\Http\Controllers\Admin\UserController as AdminUserController;
 use App\Http\Controllers\ArtisanController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BookingController;
@@ -26,12 +34,30 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/artisans/{id}', [ArtisanController::class, 'show']);
     Route::post('/artisans', [ArtisanController::class, 'store']);
     Route::put('/artisans/{id}', [ArtisanController::class, 'update']);
-
     Route::get('/bookings', [BookingController::class, 'index']);
     Route::get('/bookings/{id}', [BookingController::class, 'show']);
     Route::post('/bookings', [BookingController::class, 'store']);
-    Route::put('/bookings/{id}/status', [BookingController::class, 'updateStatus']);
     Route::delete('/bookings/{id}', [BookingController::class, 'destroy']);
+
+    Route::middleware('artisan')->group(function () {
+        Route::patch('/bookings/{id}/status', [BookingController::class, 'updateStatus']);
+        Route::put('/bookings/{id}/status', [BookingController::class, 'updateStatus']);
+        Route::post('/bookings/{id}/release', [BookingController::class, 'releaseEscrow']);
+    });
+
+    Route::middleware('artisan')->prefix('artisan')->group(function () {
+        Route::get('/profile', [ArtisanController::class, 'profile']);
+        Route::put('/profile', [ArtisanController::class, 'updateProfile']);
+        Route::get('/availability', [ArtisanController::class, 'availability']);
+        Route::put('/availability', [ArtisanController::class, 'updateAvailability']);
+        Route::get('/identity-verification', [ArtisanController::class, 'identityVerification']);
+        Route::post('/identity-verification', [ArtisanController::class, 'submitIdentityVerification']);
+        Route::get('/services', [ServiceController::class, 'artisanIndex']);
+        Route::post('/services', [ServiceController::class, 'store']);
+        Route::put('/services/{id}', [ServiceController::class, 'update']);
+        Route::delete('/services/{id}', [ServiceController::class, 'destroy']);
+
+    });
 
     Route::post('/payments/initiate', [PaymentController::class, 'initiate']);
     Route::post('/payments/confirm', [PaymentController::class, 'confirm']);
@@ -41,4 +67,28 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('/chat/{userId}/messages', [ChatController::class, 'index']);
     Route::post('/chat/send', [ChatController::class, 'send']);
+});
+
+Route::prefix('admin')->group(function () {
+    Route::post('/auth/login', [AdminAuthController::class, 'login']);
+
+    Route::middleware(['auth:sanctum', 'admin'])->group(function () {
+        Route::get('/auth/me', [AdminAuthController::class, 'me']);
+        Route::post('/auth/logout', [AdminAuthController::class, 'logout']);
+        Route::get('/dashboard', [AdminDashboardController::class, 'index']);
+
+        Route::apiResource('users', AdminUserController::class)->except(['create', 'edit']);
+        Route::post('/users/{user}/suspend', [AdminUserController::class, 'suspend']);
+        Route::post('/users/{user}/activate', [AdminUserController::class, 'activate']);
+
+        Route::get('/providers', [AdminProviderController::class, 'index']);
+        Route::post('/providers/{provider}/approve', [AdminProviderController::class, 'approve']);
+        Route::post('/providers/{provider}/reject', [AdminProviderController::class, 'reject']);
+        Route::get('/services', [AdminServiceController::class, 'index']);
+        Route::patch('/services/{service}', [AdminServiceController::class, 'update']);
+        Route::get('/bookings', [AdminBookingController::class, 'index']);
+        Route::get('/payments', [AdminTransactionController::class, 'index']);
+        Route::get('/disputes', [AdminDisputeController::class, 'index']);
+        Route::patch('/disputes/{dispute}', [AdminDisputeController::class, 'update']);
+    });
 });

@@ -11,6 +11,8 @@ class ArtisanProfile extends Model
         return [
             'is_verified' => 'boolean',
             'verified_at' => 'datetime',
+            'identity_submitted_at' => 'datetime',
+            'availability' => 'array',
         ];
     }
 
@@ -26,6 +28,12 @@ class ArtisanProfile extends Model
         'verified_at',
         'location',
         'cover_image',
+        'identity_type',
+        'identity_recto_path',
+        'identity_verso_path',
+        'identity_submitted_at',
+        'identity_rejection_reason',
+        'availability',
     ];
 
     public function user()
