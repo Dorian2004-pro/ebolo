@@ -16,6 +16,7 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'last_login_at' => 'datetime',
+            'interests' => 'array',
         ];
     }
 
@@ -30,6 +31,7 @@ class User extends Authenticatable
         'role_id',
         'status',
         'suspension_reason',
+        'interests',
     ];
 
     protected $hidden = [
