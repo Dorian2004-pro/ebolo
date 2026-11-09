@@ -52,6 +52,7 @@ class DashboardController extends Controller
 
         $pendingProviders = ArtisanProfile::where('status', 'pending')->count();
         $pendingPayments = Payment::where('status', 'pending')->count();
+        $heldPayments = Payment::where('status', 'held');
         $completedToday = Booking::where('status', 'completed')->whereDate('updated_at', $today)->count();
         $recentBookings = Booking::with(['user', 'artisan.user', 'service'])
             ->latest('booking_date')
@@ -90,10 +91,18 @@ class DashboardController extends Controller
                 'categories' => ['total' => Service::whereNotNull('category')->distinct()->count('category')],
             ],
             'finance' => [
-                'collected' => (float) Payment::where('status', 'paid')->sum('amount'),
-                'gmv_month' => (float) Payment::where('status', 'paid')->where('created_at', '>=', $month)->sum('amount'),
+                'escrow_held' => (float) $heldPayments->sum('amount'),
+                'escrow_count' => (int) $heldPayments->count(),
+                'collected' => (float) Payment::whereIn('status', ['paid', 'released'])->sum('amount'),
+                'paid_out' => (float) Payment::where('status', 'released')->sum('amount'),
+                'refunded' => (float) Payment::where('status', 'refunded')->sum('amount'),
+                'commission_month' => 0,
+                'commission_today' => 0,
+                'payouts_pending_amount' => 0,
+                'payouts_pending_count' => 0,
+                'gmv_month' => (float) Payment::whereIn('status', ['held', 'paid', 'released'])->where('created_at', '>=', $month)->sum('amount'),
                 'payments_pending' => $pendingPayments,
-                'paid_count' => Payment::where('status', 'paid')->count(),
+                'paid_count' => Payment::whereIn('status', ['paid', 'released'])->count(),
                 'revenue_today' => (float) Booking::where('status', 'completed')->whereDate('updated_at', $today)->sum('total_price'),
             ],
             'series' => ['labels' => $labels, 'bookings' => $bookingSeries, 'gmv' => $gmvSeries],

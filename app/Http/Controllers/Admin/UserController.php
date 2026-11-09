@@ -32,12 +32,14 @@ class UserController extends Controller
 
         $role = match ($request->query('role')) {
             'customer' => 'client',
-            'provider' => 'artisan',
+            'provider' => ['artisan', 'salon'],
             'admin' => 'admin',
             default => null,
         };
         if ($role) {
-            $query->whereHas('role', fn ($query) => $query->where('slug', $role));
+            $query->whereHas('role', fn ($query) => is_array($role)
+                ? $query->whereIn('slug', $role)
+                : $query->where('slug', $role));
         }
 
         $this->search($query, ['name', 'email', 'phone'], $request->query('search'));
@@ -149,6 +151,7 @@ class UserController extends Controller
         $role = match ($user->role?->slug) {
             'client' => 'customer',
             'artisan' => 'provider',
+            'salon' => 'provider',
             default => $user->role?->slug,
         };
 

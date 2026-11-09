@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\User;
 use App\Models\ArtisanProfile;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
@@ -20,8 +20,10 @@ class AuthController extends Controller
             'phone' => 'nullable|string|max:20',
             'role_id' => [
                 'required',
-                Rule::exists('roles', 'id')->where(fn ($query) => $query->whereIn('slug', ['client', 'artisan'])),
+                Rule::exists('roles', 'id')->where(fn ($query) => $query->whereIn('slug', ['client', 'artisan', 'salon'])),
             ],
+            'interests' => ['sometimes', 'array', 'max:9'],
+            'interests.*' => ['string', 'in:tresses,perruques,locks,maquillage,manucure,soins,couture,tailoring,retouches'],
         ]);
 
         $user = User::create([
@@ -31,9 +33,10 @@ class AuthController extends Controller
             'phone' => $validated['phone'] ?? null,
             'role_id' => $validated['role_id'],
             'status' => 'active',
+            'interests' => $validated['interests'] ?? [],
         ]);
 
-        if ($user->role()->where('slug', 'artisan')->exists()) {
+        if ($user->role()->whereIn('slug', ['artisan', 'salon'])->exists()) {
             ArtisanProfile::create(['user_id' => $user->id]);
         }
 
@@ -81,6 +84,24 @@ class AuthController extends Controller
     {
         return response()->json([
             'user' => $request->user()->load('role', 'artisanProfile'),
+        ]);
+    }
+
+    public function updateProfile(Request $request)
+    {
+        abort_unless($request->user()->role?->slug === 'client', 403);
+
+        $validated = $request->validate([
+            'name' => ['sometimes', 'required', 'string', 'max:255'],
+            'phone' => ['sometimes', 'nullable', 'string', 'max:20'],
+            'city' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'address' => ['sometimes', 'nullable', 'string', 'max:1000'],
+        ]);
+
+        $request->user()->update($validated);
+
+        return response()->json([
+            'user' => $request->user()->fresh()->load('role'),
         ]);
     }
 }

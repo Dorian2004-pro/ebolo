@@ -18,6 +18,7 @@ class Booking extends Model
         'total_price',
         'payment_status',
         'notes',
+        'escrow_code_hash',
     ];
 
     public function user()

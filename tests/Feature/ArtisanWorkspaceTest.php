@@ -9,6 +9,7 @@ use App\Models\Service;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
@@ -33,6 +34,30 @@ class ArtisanWorkspaceTest extends TestCase
         $this->assertDatabaseHas('artisan_profiles', [
             'user_id' => $response->json('user.id'),
         ]);
+    }
+
+    public function test_salon_registration_creates_a_professional_profile_with_saved_interests(): void
+    {
+        $this->seed();
+
+        $response = $this->postJson('/api/register', [
+            'name' => 'Atelier Ébène',
+            'email' => 'atelier@example.com',
+            'password' => 'password123',
+            'password_confirmation' => 'password123',
+            'role_id' => Role::where('slug', 'salon')->value('id'),
+            'interests' => ['tresses', 'couture'],
+        ])->assertCreated()
+            ->assertJsonPath('user.role.slug', 'salon')
+            ->assertJsonPath('user.interests.0', 'tresses')
+            ->assertJsonStructure(['user' => ['artisan_profile' => ['id']], 'token']);
+
+        $this->assertDatabaseHas('artisan_profiles', [
+            'user_id' => $response->json('user.id'),
+        ]);
+
+        $this->withToken($response->json('token'))->getJson('/api/artisan/services')
+            ->assertOk();
     }
 
     public function test_artisan_can_manage_owned_services_and_availability(): void
@@ -138,5 +163,63 @@ class ArtisanWorkspaceTest extends TestCase
         ])->assertUnprocessable();
 
         $this->withToken($token)->getJson('/api/chat/'.$client->id.'/messages')->assertOk();
+    }
+
+    public function test_client_booking_hides_escrow_hash_and_demo_payment_can_be_released_by_code(): void
+    {
+        $this->seed();
+        $artisan = User::where('email', 'artisan@ebolo.com')->firstOrFail();
+        $client = User::where('email', 'client@ebolo.com')->firstOrFail();
+        $profile = $artisan->artisanProfile;
+        $service = Service::firstOrFail();
+        $clientToken = $client->createToken('client-booking')->plainTextToken;
+        $artisanToken = $artisan->createToken('artisan-release')->plainTextToken;
+
+        $bookingResponse = $this->withToken($clientToken)->postJson('/api/bookings', [
+            'artisan_id' => $profile->id,
+            'service_id' => $service->id,
+            'booking_date' => now()->addDays(3)->format('Y-m-d'),
+            'booking_time' => '11:00',
+            'location_type' => 'home',
+            'location_details' => 'Bonapriso',
+        ])->assertCreated();
+
+        $bookingId = $bookingResponse->json('id');
+        $escrowCode = $bookingResponse->json('escrow_code');
+        $this->assertArrayNotHasKey('escrow_code_hash', $bookingResponse->json());
+        $this->assertNotSame($escrowCode, Booking::findOrFail($bookingId)->escrow_code_hash);
+        $this->assertTrue(Hash::check($escrowCode, Booking::findOrFail($bookingId)->escrow_code_hash));
+
+        $this->withToken($clientToken)->getJson('/api/bookings/'.$bookingId)
+            ->assertOk()
+            ->assertJsonMissingPath('escrow_code_hash');
+
+        $payment = $this->withToken($clientToken)->postJson('/api/payments/initiate', [
+            'booking_id' => $bookingId,
+            'provider' => 'momo',
+        ])->assertCreated()->json();
+
+        $this->withToken($clientToken)->postJson('/api/payments/confirm', [
+            'payment_id' => $payment['id'],
+        ])->assertServiceUnavailable();
+
+        config(['services.ebolo.payment_mode' => 'demo']);
+        $this->withToken($clientToken)->postJson('/api/payments/confirm', [
+            'payment_id' => $payment['id'],
+        ])->assertOk()
+            ->assertJsonPath('mode', 'demo')
+            ->assertJsonPath('payment.status', 'held')
+            ->assertJsonMissingPath('payment.booking.escrow_code_hash');
+
+        $this->app['auth']->forgetGuards();
+        $this->withToken($artisanToken)->postJson('/api/bookings/'.$bookingId.'/release', [
+            'code' => '0000',
+        ])->assertUnprocessable();
+
+        $this->withToken($artisanToken)->postJson('/api/bookings/'.$bookingId.'/release', [
+            'code' => $escrowCode,
+        ])->assertOk()
+            ->assertJsonPath('payment_status', 'released')
+            ->assertJsonPath('status', 'completed');
     }
 }

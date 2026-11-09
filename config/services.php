@@ -18,6 +18,10 @@ return [
         'key' => env('POSTMARK_API_KEY'),
     ],
 
+    'ebolo' => [
+        'payment_mode' => env('EBOLO_PAYMENT_MODE', 'disabled'),
+    ],
+
     'resend' => [
         'key' => env('RESEND_API_KEY'),
     ],

@@ -12,7 +12,10 @@ class IsArtisan
     {
         $user = $request->user();
 
-        abort_unless($user && $user->role?->slug === 'artisan' && $user->status === 'active', 403);
+        abort_unless(
+            $user && in_array($user->role?->slug, ['artisan', 'salon'], true) && $user->status === 'active',
+            403,
+        );
 
         return $next($request);
     }

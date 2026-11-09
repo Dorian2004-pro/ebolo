@@ -82,6 +82,12 @@ class ProviderController extends Controller
             'rating' => (float) $provider->rating,
             'total_reviews' => $provider->reviews_count ?? 0,
             'categories' => $provider->specialty ? [$provider->specialty] : [],
+            'documents' => [
+                'id_card' => filled($provider->identity_recto_path),
+                'business_license' => false,
+                'tax_certificate' => false,
+            ],
+            'serves_at_customer_location' => false,
             'rejection_reason' => $provider->rejection_reason,
             'verified_at' => $provider->verified_at?->toIso8601String(),
             'created_at' => $provider->created_at?->toIso8601String(),

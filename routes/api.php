@@ -2,10 +2,13 @@
 
 use App\Http\Controllers\Admin\AuthController as AdminAuthController;
 use App\Http\Controllers\Admin\BookingController as AdminBookingController;
+use App\Http\Controllers\Admin\ContentController as AdminContentController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\DisputeController as AdminDisputeController;
 use App\Http\Controllers\Admin\ProviderController as AdminProviderController;
 use App\Http\Controllers\Admin\ServiceController as AdminServiceController;
+use App\Http\Controllers\Admin\PlatformSettingsController as AdminPlatformSettingsController;
+use App\Http\Controllers\Admin\SupportController as AdminSupportController;
 use App\Http\Controllers\Admin\TransactionController as AdminTransactionController;
 use App\Http\Controllers\Admin\UserController as AdminUserController;
 use App\Http\Controllers\ArtisanController;
@@ -23,6 +26,8 @@ Route::post('/login', [AuthController::class, 'login']);
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/me', [AuthController::class, 'me']);
+    Route::patch('/profile', [AuthController::class, 'updateProfile']);
+    Route::get('/artisans/{id}/availability', [ArtisanController::class, 'publicAvailability']);
 
     Route::get('/services', [ServiceController::class, 'index']);
     Route::get('/services/{id}', [ServiceController::class, 'show']);
@@ -76,6 +81,14 @@ Route::prefix('admin')->group(function () {
         Route::get('/auth/me', [AdminAuthController::class, 'me']);
         Route::post('/auth/logout', [AdminAuthController::class, 'logout']);
         Route::get('/dashboard', [AdminDashboardController::class, 'index']);
+        Route::get('/content', [AdminContentController::class, 'index']);
+        Route::post('/content', [AdminContentController::class, 'store']);
+        Route::patch('/content/{content}', [AdminContentController::class, 'update']);
+        Route::delete('/content/{content}', [AdminContentController::class, 'destroy']);
+        Route::get('/settings', [AdminPlatformSettingsController::class, 'show']);
+        Route::patch('/settings', [AdminPlatformSettingsController::class, 'update']);
+        Route::get('/support', [AdminSupportController::class, 'index']);
+        Route::post('/support/{userId}/reply', [AdminSupportController::class, 'reply']);
 
         Route::apiResource('users', AdminUserController::class)->except(['create', 'edit']);
         Route::post('/users/{user}/suspend', [AdminUserController::class, 'suspend']);

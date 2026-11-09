@@ -6,6 +6,7 @@ use App\Models\Booking;
 use App\Models\Service;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Hash;
 
 class BookingController extends Controller
 {
@@ -16,7 +17,7 @@ class BookingController extends Controller
         $query = Booking::with(['user', 'artisan.user', 'service'])
             ->orderByDesc('created_at');
 
-        if ($user && $user->role?->slug === 'artisan') {
+        if ($user && in_array($user->role?->slug, ['artisan', 'salon'], true)) {
             $profileId = $user->artisanProfile?->id;
             $query->where('artisan_id', $profileId ?? 0);
         } elseif ($user?->role?->slug === 'client') {
@@ -37,7 +38,7 @@ class BookingController extends Controller
             403,
         );
 
-        return response()->json($booking);
+        return response()->json($booking->makeHidden('escrow_code_hash'));
     }
 
     public function store(Request $request)
@@ -55,7 +56,15 @@ class BookingController extends Controller
         ]);
 
         $service = Service::findOrFail($validated['service_id']);
-        abort_unless($service->artisan_id === (int) $validated['artisan_id'], 422, 'Cette prestation ne correspond pas à ce prestataire.');
+        abort_unless(
+            $service->artisan_id === (int) $validated['artisan_id']
+                && $service->is_active
+                && $service->artisan?->status === 'approved'
+                && $service->artisan?->is_verified
+                && $service->artisan?->user?->status === 'active',
+            422,
+            'Cette prestation n’est pas actuellement réservable.',
+        );
 
         $alreadyBooked = Booking::where('artisan_id', $validated['artisan_id'])
             ->where('booking_date', $validated['booking_date'])
@@ -65,10 +74,11 @@ class BookingController extends Controller
 
         if ($alreadyBooked) {
             return response()->json([
-                'message' => 'Ce créneau est déjà réservé.'
+                'message' => 'Ce créneau est déjà réservé.',
             ], 422);
         }
 
+        $escrowCode = (string) random_int(1000, 9999);
         $booking = Booking::create([
             'user_id' => auth()->id(),
             'artisan_id' => $validated['artisan_id'],
@@ -82,8 +92,12 @@ class BookingController extends Controller
             'payment_status' => 'unpaid',
             'notes' => $validated['notes'] ?? null,
         ]);
+        $booking->forceFill(['escrow_code_hash' => Hash::make($escrowCode)])->save();
 
-        return response()->json($booking, 201);
+        return response()->json([
+            ...$booking->makeHidden('escrow_code_hash')->toArray(),
+            'escrow_code' => $escrowCode,
+        ], 201);
     }
 
     public function updateStatus(Request $request, $id)
@@ -118,13 +132,14 @@ class BookingController extends Controller
             'code' => ['required', 'string', 'max:10'],
         ]);
 
-        if ($validated['code'] !== '7492') {
+        if (! $booking->escrow_code_hash || ! Hash::check($validated['code'], $booking->escrow_code_hash)) {
             return response()->json(['message' => 'Code incorrect. Vérifiez auprès de votre cliente.'], 422);
         }
 
         $booking->status = 'completed';
         $booking->payment_status = 'released';
         $booking->save();
+        $booking->payment?->update(['status' => 'released']);
 
         return response()->json($this->present($booking->load(['user', 'service', 'payment'])));
     }
@@ -151,6 +166,20 @@ class BookingController extends Controller
 
         return [
             'id' => $booking->id,
+            'reference' => 'EB-'.str_pad((string) $booking->id, 6, '0', STR_PAD_LEFT),
+            'booking_date' => $booking->booking_date,
+            'booking_time' => substr((string) $booking->booking_time, 0, 5),
+            'artisan_id' => $booking->artisan_id,
+            'service_id' => $booking->service_id,
+            'artisan' => [
+                'id' => $booking->artisan?->id,
+                'user_id' => $booking->artisan?->user_id,
+                'business_name' => $booking->artisan?->specialty,
+                'user' => [
+                    'id' => $booking->artisan?->user?->id,
+                    'name' => $booking->artisan?->user?->name,
+                ],
+            ],
             'client' => [
                 'id' => $booking->user?->id,
                 'name' => $booking->user?->name,
@@ -160,9 +189,13 @@ class BookingController extends Controller
             'service' => [
                 'id' => $booking->service?->id,
                 'name' => $booking->service?->name,
+                'category' => $booking->service?->category,
                 'price' => (float) ($booking->total_price ?? $booking->service?->price ?? 0),
                 'duration_minutes' => $booking->service?->duration_minutes,
             ],
+            'location_type' => $booking->location_type,
+            'total_price' => (float) $booking->total_price,
+            'payment_status' => $paymentStatus,
             'starts_at' => $startsAt->toIso8601String(),
             'ends_at' => $startsAt->copy()->addMinutes($booking->service?->duration_minutes ?? 0)->toIso8601String(),
             'status' => $booking->status,

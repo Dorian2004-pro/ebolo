@@ -32,6 +32,25 @@ class ArtisanController extends Controller
         return response()->json($artisan);
     }
 
+    public function publicAvailability($id)
+    {
+        $artisan = ArtisanProfile::where('status', 'approved')
+            ->where('is_verified', true)
+            ->whereHas('user', fn ($query) => $query->where('status', 'active'))
+            ->findOrFail($id);
+
+        return response()->json([
+            'days' => $artisan->availability ?? [],
+            'booked' => $artisan->bookings()
+                ->whereIn('status', ['pending', 'confirmed'])
+                ->get(['booking_date', 'booking_time'])
+                ->map(fn ($booking) => [
+                    'date' => $booking->booking_date,
+                    'time' => substr($booking->booking_time, 0, 5),
+                ]),
+        ]);
+    }
+
     public function profile(Request $request)
     {
         $user = $request->user()->load('artisanProfile');
@@ -174,7 +193,7 @@ class ArtisanController extends Controller
 
     public function store(Request $request)
     {
-        abort_unless($request->user()->role?->slug === 'artisan', 403);
+        abort_unless(in_array($request->user()->role?->slug, ['artisan', 'salon'], true), 403);
 
         if ($request->user()->artisanProfile) {
             return response()->json($request->user()->artisanProfile, 200);

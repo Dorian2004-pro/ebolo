@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Message;
 use App\Models\Booking;
+use App\Models\Message;
 use Illuminate\Http\Request;
 
 class ChatController extends Controller
@@ -13,9 +13,9 @@ class ChatController extends Controller
         abort_unless($this->canChatWith((int) $userId), 403);
 
         $messages = Message::where(function ($query) use ($userId) {
-                $query->where('sender_id', auth()->id())
-                    ->where('receiver_id', $userId);
-            })
+            $query->where('sender_id', auth()->id())
+                ->where('receiver_id', $userId);
+        })
             ->orWhere(function ($query) use ($userId) {
                 $query->where('sender_id', $userId)
                     ->where('receiver_id', auth()->id());
@@ -49,7 +49,7 @@ class ChatController extends Controller
         $user = auth()->user();
         $profileId = $user->artisanProfile?->id;
 
-        if ($user->role?->slug === 'artisan' && $profileId) {
+        if (in_array($user->role?->slug, ['artisan', 'salon'], true) && $profileId) {
             return Booking::where('artisan_id', $profileId)
                 ->where('user_id', $otherUserId)
                 ->exists();

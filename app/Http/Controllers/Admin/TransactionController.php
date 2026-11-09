@@ -17,6 +17,7 @@ class TransactionController extends Controller
         $query = Payment::with(['user', 'booking']);
         $status = match ($request->query('status')) {
             'completed' => 'paid',
+            'held' => 'held',
             default => $request->query('status'),
         };
         if ($status) {
@@ -28,7 +29,10 @@ class TransactionController extends Controller
         $this->search($query, ['reference'], $request->query('search'));
 
         $summary = [
-            'collected' => (float) Payment::where('status', 'paid')->sum('amount'),
+            'escrow_held' => (float) Payment::where('status', 'held')->sum('amount'),
+            'collected' => (float) Payment::whereIn('status', ['paid', 'released'])->sum('amount'),
+            'paid_out' => (float) Payment::where('status', 'released')->sum('amount'),
+            'refunded' => (float) Payment::where('status', 'refunded')->sum('amount'),
             'failed' => Payment::where('status', 'failed')->count(),
             'pending' => Payment::where('status', 'pending')->count(),
             'total' => Payment::count(),
@@ -53,7 +57,7 @@ class TransactionController extends Controller
                 ? 'EB-'.str_pad((string) $payment->booking->id, 6, '0', STR_PAD_LEFT)
                 : null,
             'gateway' => $payment->provider,
-            'status' => $payment->status === 'paid' ? 'completed' : $payment->status,
+            'status' => in_array($payment->status, ['paid', 'released'], true) ? 'completed' : $payment->status,
             'failure_reason' => null,
             'direction' => 'in',
             'amount' => (float) $payment->amount,
