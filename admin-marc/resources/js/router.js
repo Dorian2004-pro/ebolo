@@ -1,8 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import { auth } from './lib/auth';
 
-const Soon = () => import('./pages/ComingSoonPage.vue');
-
 const routes = [
     { path: '/', redirect: '/dashboard' },
     { path: '/login', name: 'login', component: () => import('./pages/LoginPage.vue'), meta: { public: true, title: 'Connexion' } },
@@ -13,10 +11,10 @@ const routes = [
     { path: '/bookings', name: 'bookings', component: () => import('./pages/BookingsPage.vue'), meta: { title: 'Réservations', permission: 'manage_bookings' } },
     { path: '/payments', name: 'payments', component: () => import('./pages/PaymentsPage.vue'), meta: { title: 'Paiements', permission: 'manage_payments' } },
     { path: '/disputes', name: 'disputes', component: () => import('./pages/DisputesPage.vue'), meta: { title: 'Litiges', permission: 'manage_disputes' } },
-    { path: '/content', name: 'content', component: Soon, props: { icon: 'FileText', title: 'Contenu', text: 'Pages légales, FAQ, annonces et bannières.' }, meta: { title: 'Contenu' } },
-    { path: '/reports', name: 'reports', component: Soon, props: { icon: 'ChartColumn', title: 'Rapports', text: 'Exports financiers, statistiques par catégorie et journal d\'audit.' }, meta: { title: 'Rapports' } },
-    { path: '/settings', name: 'settings', component: Soon, props: { icon: 'Settings', title: 'Paramètres', text: 'Commissions, devise, règles de séquestre et équipe d\'administration.' }, meta: { title: 'Paramètres' } },
-    { path: '/support', name: 'support', component: Soon, props: { icon: 'LifeBuoy', title: 'Support', text: 'Tickets et messages des clientes et des prestataires.' }, meta: { title: 'Support' } },
+    { path: '/content', name: 'content', component: () => import('./pages/ContentPage.vue'), meta: { title: 'Contenu' } },
+    { path: '/reports', name: 'reports', component: () => import('./pages/ReportsPage.vue'), meta: { title: 'Rapports' } },
+    { path: '/settings', name: 'settings', component: () => import('./pages/SettingsPage.vue'), meta: { title: 'Paramètres' } },
+    { path: '/support', name: 'support', component: () => import('./pages/SupportPage.vue'), meta: { title: 'Support' } },
     { path: '/:pathMatch(.*)*', redirect: '/dashboard' },
 ];
 

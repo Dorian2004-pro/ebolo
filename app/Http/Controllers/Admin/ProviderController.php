@@ -49,6 +49,7 @@ class ProviderController extends Controller
             'is_verified' => true,
             'status' => 'approved',
             'rejection_reason' => null,
+            'identity_rejection_reason' => null,
             'verified_at' => now(),
         ]);
 
@@ -62,6 +63,7 @@ class ProviderController extends Controller
             'is_verified' => false,
             'status' => 'rejected',
             'rejection_reason' => $data['reason'],
+            'identity_rejection_reason' => $data['reason'],
             'verified_at' => null,
         ]);
 

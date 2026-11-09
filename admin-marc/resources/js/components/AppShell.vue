@@ -28,10 +28,10 @@ const groups = [
         { name: 'Litiges', to: '/disputes', icon: ShieldAlert, perm: 'manage_disputes' },
     ] },
     { label: 'Plateforme', items: [
-        { name: 'Contenu', to: '/content', icon: FileText, soon: true },
-        { name: 'Rapports', to: '/reports', icon: ChartColumn, soon: true },
-        { name: 'Paramètres', to: '/settings', icon: Settings, soon: true },
-        { name: 'Support', to: '/support', icon: LifeBuoy, soon: true },
+        { name: 'Contenu', to: '/content', icon: FileText },
+        { name: 'Rapports', to: '/reports', icon: ChartColumn },
+        { name: 'Paramètres', to: '/settings', icon: Settings },
+        { name: 'Support', to: '/support', icon: LifeBuoy },
     ] },
 ];
 
