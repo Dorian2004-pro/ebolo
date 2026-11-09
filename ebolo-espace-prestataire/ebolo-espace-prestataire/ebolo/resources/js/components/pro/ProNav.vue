@@ -6,7 +6,7 @@ const tabs = [
     { to: { name: 'pro.services' }, label: 'Prestations', icon: 'content_cut' },
     { to: { name: 'pro.planning' }, label: 'Planning', icon: 'calendar_month' },
     { to: { name: 'pro.messages' }, label: 'Messages', icon: 'chat_bubble' },
-    { to: { name: 'pro.verification' }, label: 'Profil Pro', icon: 'badge' },
+    { to: { name: 'pro.profile' }, label: 'Mon profil', icon: 'badge' },
 ];
 </script>
 

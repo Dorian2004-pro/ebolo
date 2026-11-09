@@ -11,6 +11,8 @@ const routes = [
         component: ProLayout,
         children: [
             { path: '', name: 'pro.dashboard', component: () => import('@/views/pro/DashboardView.vue'), meta: { title: 'Tableau de bord' } },
+            { path: 'profil', name: 'pro.profile', component: () => import('@/views/pro/ProfileView.vue'), meta: { title: 'Mon profil', icon: 'badge' } },
+            { path: 'disponibilites', name: 'pro.availability', component: () => import('@/views/pro/AvailabilityView.vue'), meta: { title: 'Mes disponibilités', icon: 'schedule' } },
             { path: 'verification', name: 'pro.verification', component: () => import('@/views/pro/IdentityVerificationView.vue'), meta: { title: 'Vérification prestataire', hideNav: true } },
             { path: 'prestations', name: 'pro.services', component: () => import('@/views/pro/ServicesView.vue'), meta: { title: 'Prestations', icon: 'content_cut' } },
             { path: 'planning', name: 'pro.planning', component: () => import('@/views/pro/PlanningView.vue'), meta: { title: 'Planning', icon: 'calendar_month' } },

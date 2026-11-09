@@ -6,6 +6,7 @@ import BookingCard from '@/components/pro/BookingCard.vue';
 import RequestCard from '@/components/pro/RequestCard.vue';
 import { useToastStore } from '@/stores/toast';
 import { errorMessage } from '@/services/http';
+import { RouterLink } from 'vue-router';
 
 const pro = useProStore();
 const toast = useToastStore();
@@ -38,7 +39,7 @@ async function answer(booking, status) {
 
 <template>
     <div class="page">
-        <header><span class="eyebrow">MON ACTIVITÉ</span><h1>Planning</h1><p>Retrouvez les demandes et rendez-vous reçus.</p></header>
+        <header><span class="eyebrow">MON ACTIVITÉ</span><h1>Planning</h1><p>Retrouvez les demandes et rendez-vous reçus.</p><RouterLink class="schedule-link" :to="{ name: 'pro.availability' }">Gérer mes horaires →</RouterLink></header>
         <p v-if="pro.loading && !pro.loaded" class="notice">Chargement du planning…</p>
         <p v-else-if="pro.error && !pro.loaded" class="error" role="alert">{{ pro.error }}</p>
         <template v-else>
@@ -75,4 +76,5 @@ header p { color: var(--text-2); font-size: 13px; }
 .status.confirmed { background: var(--green-bg); color: var(--green); }
 .notice, .error { padding: 16px; color: var(--muted); text-align: center; font-size: 13px; }
 .error { color: var(--danger); }
+.schedule-link { align-self: flex-start; margin-top: 6px; color: var(--plum); font-size: 12px; font-weight: 700; }
 </style>

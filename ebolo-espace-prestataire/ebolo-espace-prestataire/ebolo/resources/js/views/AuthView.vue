@@ -32,7 +32,7 @@ async function submit() {
 
         localStorage.setItem('ebolo_token', response.token);
         const user = await api.getCurrentUser();
-        if (user.role?.slug !== 'artisan') {
+        if (!['artisan', 'salon'].includes(user.role?.slug)) {
             await api.logout();
             localStorage.removeItem('ebolo_token');
             throw new Error('Cet espace est réservé aux comptes prestataires.');
