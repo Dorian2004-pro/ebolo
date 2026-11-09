@@ -26,12 +26,30 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/artisans/{id}', [ArtisanController::class, 'show']);
     Route::post('/artisans', [ArtisanController::class, 'store']);
     Route::put('/artisans/{id}', [ArtisanController::class, 'update']);
-
     Route::get('/bookings', [BookingController::class, 'index']);
     Route::get('/bookings/{id}', [BookingController::class, 'show']);
     Route::post('/bookings', [BookingController::class, 'store']);
-    Route::put('/bookings/{id}/status', [BookingController::class, 'updateStatus']);
     Route::delete('/bookings/{id}', [BookingController::class, 'destroy']);
+
+    Route::middleware('artisan')->group(function () {
+        Route::patch('/bookings/{id}/status', [BookingController::class, 'updateStatus']);
+        Route::put('/bookings/{id}/status', [BookingController::class, 'updateStatus']);
+        Route::post('/bookings/{id}/release', [BookingController::class, 'releaseEscrow']);
+    });
+
+    Route::middleware('artisan')->prefix('artisan')->group(function () {
+        Route::get('/profile', [ArtisanController::class, 'profile']);
+        Route::put('/profile', [ArtisanController::class, 'updateProfile']);
+        Route::get('/availability', [ArtisanController::class, 'availability']);
+        Route::put('/availability', [ArtisanController::class, 'updateAvailability']);
+        Route::get('/identity-verification', [ArtisanController::class, 'identityVerification']);
+        Route::post('/identity-verification', [ArtisanController::class, 'submitIdentityVerification']);
+        Route::get('/services', [ServiceController::class, 'artisanIndex']);
+        Route::post('/services', [ServiceController::class, 'store']);
+        Route::put('/services/{id}', [ServiceController::class, 'update']);
+        Route::delete('/services/{id}', [ServiceController::class, 'destroy']);
+
+    });
 
     Route::post('/payments/initiate', [PaymentController::class, 'initiate']);
     Route::post('/payments/confirm', [PaymentController::class, 'confirm']);

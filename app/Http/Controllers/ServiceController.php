@@ -22,6 +22,13 @@ class ServiceController extends Controller
         return response()->json($services);
     }
 
+    public function artisanIndex()
+    {
+        $profile = auth()->user()->artisanProfile;
+
+        return response()->json($profile?->services()->latest()->get() ?? collect());
+    }
+
     public function show($id)
     {
         $service = Service::with('artisan.user')->findOrFail($id);
@@ -31,6 +38,9 @@ class ServiceController extends Controller
 
     public function store(Request $request)
     {
+        $profile = $request->user()->artisanProfile;
+        abort_unless($profile, 422, 'Complétez votre profil prestataire avant de créer une prestation.');
+
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
@@ -40,10 +50,15 @@ class ServiceController extends Controller
             'image' => 'nullable|string',
         ]);
 
+        $slug = Str::slug($validated['name']);
+        if (Service::where('slug', $slug)->exists()) {
+            $slug .= '-'.Str::lower(Str::random(6));
+        }
+
         $service = Service::create([
-            'artisan_id' => auth()->user()->artisanProfile?->id,
+            'artisan_id' => $profile->id,
             'name' => $validated['name'],
-            'slug' => Str::slug($validated['name']),
+            'slug' => $slug,
             'description' => $validated['description'] ?? null,
             'duration_minutes' => $validated['duration_minutes'],
             'price' => $validated['price'],
@@ -58,6 +73,7 @@ class ServiceController extends Controller
     public function update(Request $request, $id)
     {
         $service = Service::findOrFail($id);
+        abort_unless($service->artisan?->user_id === $request->user()->id, 403);
 
         $validated = $request->validate([
             'name' => 'sometimes|string|max:255',
@@ -70,7 +86,11 @@ class ServiceController extends Controller
         ]);
 
         if (isset($validated['name'])) {
-            $validated['slug'] = Str::slug($validated['name']);
+            $slug = Str::slug($validated['name']);
+            if (Service::where('slug', $slug)->where('id', '!=', $service->id)->exists()) {
+                $slug .= '-'.Str::lower(Str::random(6));
+            }
+            $validated['slug'] = $slug;
         }
 
         $service->update($validated);
@@ -81,6 +101,7 @@ class ServiceController extends Controller
     public function destroy($id)
     {
         $service = Service::findOrFail($id);
+        abort_unless($service->artisan?->user_id === auth()->id(), 403);
         $service->delete();
 
         return response()->json([

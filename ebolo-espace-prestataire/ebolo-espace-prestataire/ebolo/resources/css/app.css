@@ -1,0 +1,87 @@
+/* Ébolo — design tokens issus de la maquette « Prestige » */
+:root {
+    --plum: #310729;
+    --plum-2: #4a1d3f;
+    --plum-deep: #23091e;
+    --rust: #a13f1f;
+    --terracotta: #c75b39;
+    --gold: #ffb956;
+    --gold-2: #e8a33d;
+
+    --bg: #fff7f9;
+    --page: #ece3e7;
+    --surface: #ffffff;
+    --blush: #fcf1f5;
+    --blush-2: #f0e5e9;
+    --line: #eae0e4;
+    --line-soft: #f0e5e9;
+
+    --text: #1f1a1d;
+    --text-2: #4f444a;
+    --muted: #5f5359;
+    --faint: #81737b;
+
+    --green: #2e9e6b;
+    --green-bg: #eaf7f0;
+    --green-soft: #7fd8ad;
+    --wa: #1f8f5f;
+    --amber: #c98623;
+    --amber-bg: #fdf5e8;
+    --danger: #b3261e;
+    --danger-bg: #fcebe6;
+    --danger-soft: #ffb59f;
+
+    --font-body: 'Inter', system-ui, sans-serif;
+    --font-head: 'Plus Jakarta Sans', 'Inter', system-ui, sans-serif;
+    --app-width: 480px;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body { margin: 0; }
+
+body {
+    background: var(--page);
+    color: var(--text);
+    font-family: var(--font-body);
+    font-size: 14px;
+    -webkit-font-smoothing: antialiased;
+    -webkit-tap-highlight-color: transparent;
+}
+
+h1, h2, h3, p { margin: 0; }
+button, input, textarea { font-family: inherit; }
+button { cursor: pointer; }
+a { color: var(--rust); text-decoration: none; }
+
+:focus-visible { outline: 2px solid var(--gold-2); outline-offset: 2px; }
+
+.sr-only {
+    position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+    overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+}
+
+/* Material Symbols (axe FILL pour l'onglet actif) */
+.ms {
+    font-family: 'Material Symbols Outlined Variable';
+    font-weight: 400;
+    font-style: normal;
+    font-size: 24px;
+    line-height: 1;
+    letter-spacing: normal;
+    text-transform: none;
+    display: inline-block;
+    white-space: nowrap;
+    direction: ltr;
+    font-variation-settings: 'FILL' 0;
+    -webkit-font-smoothing: antialiased;
+    user-select: none;
+}
+.ms.is-filled { font-variation-settings: 'FILL' 1; }
+
+@keyframes eb-spin { to { transform: rotate(360deg); } }
+@keyframes eb-pulse { 50% { opacity: .55; } }
+
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+}
