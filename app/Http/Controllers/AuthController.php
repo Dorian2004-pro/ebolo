@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Models\ArtisanProfile;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
@@ -32,10 +33,14 @@ class AuthController extends Controller
             'status' => 'active',
         ]);
 
+        if ($user->role()->where('slug', 'artisan')->exists()) {
+            ArtisanProfile::create(['user_id' => $user->id]);
+        }
+
         $token = $user->createToken('auth_token')->plainTextToken;
 
         return response()->json([
-            'user' => $user,
+            'user' => $user->load('role', 'artisanProfile'),
             'token' => $token,
         ], 201);
     }

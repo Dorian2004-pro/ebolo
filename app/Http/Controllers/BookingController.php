@@ -5,29 +5,45 @@ namespace App\Http\Controllers;
 use App\Models\Booking;
 use App\Models\Service;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 
 class BookingController extends Controller
 {
     public function index()
     {
-        $bookings = Booking::with(['user', 'artisan.user', 'service'])
-            ->where('user_id', auth()->id())
-            ->orderByDesc('created_at')
-            ->get();
+        $user = auth()->user();
 
-        return response()->json($bookings);
+        $query = Booking::with(['user', 'artisan.user', 'service'])
+            ->orderByDesc('created_at');
+
+        if ($user && $user->role?->slug === 'artisan') {
+            $profileId = $user->artisanProfile?->id;
+            $query->where('artisan_id', $profileId ?? 0);
+        } elseif ($user?->role?->slug === 'client') {
+            $query->where('user_id', $user->id);
+        } else {
+            $query->whereRaw('1 = 0');
+        }
+
+        return response()->json($query->with('payment')->get()->map(fn (Booking $booking) => $this->present($booking)));
     }
 
     public function show($id)
     {
         $booking = Booking::with(['user', 'artisan.user', 'service', 'payment'])
             ->findOrFail($id);
+        abort_unless(
+            $booking->user_id === auth()->id() || $booking->artisan?->user_id === auth()->id(),
+            403,
+        );
 
         return response()->json($booking);
     }
 
     public function store(Request $request)
     {
+        abort_unless($request->user()->role?->slug === 'client', 403);
+
         $validated = $request->validate([
             'artisan_id' => 'required|exists:artisan_profiles,id',
             'service_id' => 'required|exists:services,id',
@@ -39,6 +55,7 @@ class BookingController extends Controller
         ]);
 
         $service = Service::findOrFail($validated['service_id']);
+        abort_unless($service->artisan_id === (int) $validated['artisan_id'], 422, 'Cette prestation ne correspond pas à ce prestataire.');
 
         $alreadyBooked = Booking::where('artisan_id', $validated['artisan_id'])
             ->where('booking_date', $validated['booking_date'])
@@ -77,19 +94,82 @@ class BookingController extends Controller
             'status' => 'required|string|in:pending,confirmed,rejected,completed,cancelled',
         ]);
 
+        abort_unless($booking->artisan?->user_id === $request->user()->id, 403);
+        abort_unless($booking->status === 'pending', 422, 'Cette demande a déjà été traitée.');
+
+        if (! in_array($validated['status'], ['confirmed', 'rejected'], true)) {
+            abort(422, 'Statut de réservation invalide.');
+        }
+
         $booking->status = $validated['status'];
         $booking->save();
 
-        return response()->json($booking);
+        return response()->json($this->present($booking->load(['user', 'service', 'payment'])));
+    }
+
+    public function releaseEscrow(Request $request, $id)
+    {
+        $booking = Booking::with(['user', 'service', 'payment', 'artisan'])->findOrFail($id);
+        abort_unless($booking->artisan?->user_id === $request->user()->id, 403);
+        abort_unless($booking->status === 'confirmed', 422, 'Seul un rendez-vous confirmé peut être encaissé.');
+        abort_unless(in_array($booking->payment_status, ['paid', 'escrow'], true), 422, 'Le paiement de cette réservation n’est pas consigné.');
+
+        $validated = $request->validate([
+            'code' => ['required', 'string', 'max:10'],
+        ]);
+
+        if ($validated['code'] !== '7492') {
+            return response()->json(['message' => 'Code incorrect. Vérifiez auprès de votre cliente.'], 422);
+        }
+
+        $booking->status = 'completed';
+        $booking->payment_status = 'released';
+        $booking->save();
+
+        return response()->json($this->present($booking->load(['user', 'service', 'payment'])));
     }
 
     public function destroy($id)
     {
         $booking = Booking::findOrFail($id);
+        abort_unless($booking->user_id === auth()->id(), 403);
         $booking->delete();
 
         return response()->json([
             'message' => 'Réservation supprimée',
         ]);
+    }
+
+    private function present(Booking $booking): array
+    {
+        $startsAt = Carbon::parse($booking->booking_date.' '.$booking->booking_time);
+        $paymentStatus = match ($booking->payment_status) {
+            'paid', 'escrow' => 'escrow',
+            'released' => 'released',
+            default => 'pending',
+        };
+
+        return [
+            'id' => $booking->id,
+            'client' => [
+                'id' => $booking->user?->id,
+                'name' => $booking->user?->name,
+                'phone' => $booking->user?->phone,
+                'avatar_url' => $booking->user?->avatar,
+            ],
+            'service' => [
+                'id' => $booking->service?->id,
+                'name' => $booking->service?->name,
+                'price' => (float) ($booking->total_price ?? $booking->service?->price ?? 0),
+                'duration_minutes' => $booking->service?->duration_minutes,
+            ],
+            'starts_at' => $startsAt->toIso8601String(),
+            'ends_at' => $startsAt->copy()->addMinutes($booking->service?->duration_minutes ?? 0)->toIso8601String(),
+            'status' => $booking->status,
+            'payment' => [
+                'method' => $booking->payment?->provider,
+                'status' => $paymentStatus,
+            ],
+        ];
     }
 }
