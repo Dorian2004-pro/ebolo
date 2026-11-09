@@ -15,5 +15,14 @@
     },
     "optionalDependencies": {
         "@laravel/multiplex": "^0.4.1"
+    },
+    "dependencies": {
+        "@fontsource-variable/inter": "^5.3.0",
+        "@fontsource-variable/plus-jakarta-sans": "^5.3.0",
+        "@lucide/vue": "^1.69.0",
+        "@vitejs/plugin-vue": "^6.0.10",
+        "axios": "^1.21.0",
+        "vue": "^3.5.45",
+        "vue-router": "^4.6.4"
     }
 }

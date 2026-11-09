@@ -58,14 +58,6 @@ export const useProStore = defineStore('pro', () => {
     const respond = (id, status) =>
         withBusy(id, async () => replace(await api.updateBookingStatus(id, status)));
 
-    async function updateProfile(payload) {
-        profile.value = await api.updateProfile(payload);
-    }
-
-    async function updateAvailability(payload) {
-        availability.value = await api.updateAvailability(payload);
-    }
-
     /** Débloquer le séquestre avec le code à 4 chiffres de la cliente. */
     const release = (id, code) =>
         withBusy(id, async () => replace(await api.releaseEscrow(id, code)));
@@ -124,7 +116,7 @@ export const useProStore = defineStore('pro', () => {
 
     return {
         profile, availability, bookings, loading, loaded, error, busy, now,
-        load, respond, release, updateProfile, updateAvailability,
+        load, respond, release,
         firstName, subtitle, isOpen, revenueMonth, revenueDelta, confirmedThisMonth,
         pendingRequests, todayBookings, escrowBooking,
     };
